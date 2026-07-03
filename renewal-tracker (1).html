@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>更新期限帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151b;
+    --surface:#1a1f27;
+    --surface-2:#212733;
+    --border:#2b3240;
+    --text:#eae7de;
+    --text-dim:#9099a8;
+    --text-faint:#5c6472;
+    --accent:#c9a34c;
+    --accent-dim:#8a7132;
+    --ok:#5a9c6e;
+    --ok-bg:rgba(90,156,110,0.12);
+    --warn:#d99a3d;
+    --warn-bg:rgba(217,154,61,0.12);
+    --danger:#c1594f;
+    --danger-bg:rgba(193,89,79,0.14);
+    --neutral:#7c8695;
+    --neutral-bg:rgba(124,134,149,0.12);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px;}
+
+  header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:24px;}
+  .brand{display:flex;flex-direction:column;gap:4px;}
+  .brand .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;}
+  .brand h1{font-family:'Fraunces',serif;font-weight:600;font-size:34px;margin:0;letter-spacing:-0.01em;}
+  .brand p{margin:2px 0 0;color:var(--text-dim);font-size:14px;}
+  .add-btn{
+    background:var(--accent);color:#1a1508;border:none;font-family:'Inter',sans-serif;font-weight:600;
+    font-size:14px;padding:12px 20px;border-radius:10px;cursor:pointer;transition:transform .15s ease, background .15s ease;
+    white-space:nowrap;
+  }
+  .add-btn:hover{background:#dcb35b;transform:translateY(-1px);}
+  .add-btn.ghost{background:transparent;border:1px solid var(--accent-dim);color:var(--accent);}
+  .add-btn.ghost:hover{background:rgba(201,163,76,0.08);}
+
+  /* tabs */
+  .tabbar{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border);}
+  .tabbar button{
+    background:none;border:none;color:var(--text-dim);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+    padding:10px 4px;margin-right:22px;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s;
+  }
+  .tabbar button.active{color:var(--text);border-bottom-color:var(--accent);}
+  .tabbar button:hover{color:var(--text);}
+
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;}
+  .summary .cell{background:var(--surface);padding:16px 18px;}
+  .summary .cell .num{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;}
+  .summary .cell .label{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .summary .cell.danger .num{color:var(--danger);}
+  .summary .cell.warn .num{color:var(--warn);}
+  .summary .cell.ok .num{color:var(--ok);}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;}
+  .toolbar input[type=text], .toolbar select{
+    background:var(--surface);border:1px solid var(--border);color:var(--text);
+    font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;border-radius:8px;outline:none;
+  }
+  .toolbar input[type=text]{min-width:200px;flex:1;}
+  .toolbar input[type=text]:focus, .toolbar select:focus{border-color:var(--accent-dim);}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 18px 16px;position:relative;overflow:hidden;transition:border-color .15s ease;
+  }
+  .card:hover{border-color:#3a4252;}
+  .card.st-danger{border-color:rgba(193,89,79,0.4);}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:14px;}
+  .cat-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;}
+  .cat-badge svg{width:14px;height:14px;stroke:var(--text-dim);}
+  .stamp{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.08em;
+    padding:3px 9px;border-radius:20px;border:1.5px solid; transform:rotate(-3deg);white-space:nowrap;
+  }
+  .stamp.danger{color:var(--danger);border-color:var(--danger);background:var(--danger-bg);}
+  .stamp.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg);}
+  .stamp.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-bg);}
+  .stamp.neutral{color:var(--neutral);border-color:var(--neutral);background:var(--neutral-bg);}
+
+  .card h3{font-family:'Fraunces',serif;font-size:19px;margin:0 0 2px;font-weight:600;line-height:1.3;}
+  .card .holder{font-size:13px;color:var(--text-dim);margin-bottom:14px;}
+
+  .expiry-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
+  .expiry-row .date{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;letter-spacing:.02em;}
+  .expiry-row .days{font-size:12px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+
+  .bar-track{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-bottom:14px;}
+  .bar-fill{height:100%;border-radius:3px;}
+
+  .meta-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-bottom:14px;}
+  .meta-row .fee{font-family:'IBM Plex Mono',monospace;color:var(--text);}
+
+  .card-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .card-actions button{
+    flex:1;min-width:70px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    font-family:'Inter',sans-serif;font-size:12px;padding:8px 6px;border-radius:8px;cursor:pointer;transition:background .15s;
+  }
+  .card-actions button:hover{background:#2a3241;}
+  .card-actions button.primary{background:transparent;border-color:var(--accent-dim);color:var(--accent);}
+  .card-actions button.primary:hover{background:rgba(201,163,76,0.1);}
+  .card-actions button.ghost{color:var(--text-faint);}
+  .card-actions button.ghost:hover{color:var(--danger);}
+
+  .empty{border:1px dashed var(--border);border-radius:var(--radius);padding:60px 24px;text-align:center;color:var(--text-dim);}
+  .empty h3{font-family:'Fraunces',serif;color:var(--text);font-size:20px;margin-bottom:8px;}
+  .empty button{margin-top:16px;}
+
+  .overlay{position:fixed;inset:0;background:rgba(8,9,12,0.65);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;padding:26px;}
+  .modal h2{font-family:'Fraunces',serif;font-size:22px;margin:0 0 18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;font-weight:500;}
+  .field input, .field select, .field textarea{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--accent-dim);}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .field textarea{resize:vertical;min-height:60px;font-family:'Inter',sans-serif;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+  .modal-actions button{padding:10px 18px;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer;border:none;}
+  .modal-actions .cancel{background:transparent;color:var(--text-dim);border:1px solid var(--border);}
+  .modal-actions .save{background:var(--accent);color:#1a1508;font-weight:600;}
+
+  .loading{color:var(--text-dim);padding:60px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface-2);
+    border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:8px;font-size:13px;
+    opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+  /* identity chips */
+  .identity-panel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:22px;}
+  .identity-panel .panel-label{font-size:12px;color:var(--text-dim);margin-right:4px;}
+  .chip{
+    display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);
+    border-radius:20px;padding:6px 6px 6px 14px;font-size:13px;
+  }
+  .chip .rel{font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;}
+  .chip button{
+    background:var(--surface-2);border:none;color:var(--text-faint);width:20px;height:20px;border-radius:50%;
+    cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;
+  }
+  .chip button:hover{color:var(--danger);}
+  .chip-add{
+    background:none;border:1px dashed var(--border);color:var(--text-dim);border-radius:20px;padding:6px 14px;
+    font-size:13px;cursor:pointer;
+  }
+  .chip-add:hover{color:var(--accent);border-color:var(--accent-dim);}
+
+  /* stats table */
+  .stats-table{width:100%;border-collapse:collapse;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .stats-table th, .stats-table td{padding:10px 14px;text-align:left;font-size:13px;border-bottom:1px solid var(--border);}
+  .stats-table th{color:var(--text-dim);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+  .stats-table td{font-family:'IBM Plex Mono',monospace;}
+  .stats-table td.name-col{font-family:'Inter',sans-serif;font-weight:600;}
+  .stats-table tr:last-child td{border-bottom:none;}
+
+  /* history table */
+  .history-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);}
+  .history-table{width:100%;border-collapse:collapse;min-width:760px;}
+  .history-table th, .history-table td{padding:11px 14px;text-align:left;font-size:13px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .history-table th{color:var(--text-dim);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;background:var(--surface);}
+  .history-table tr:last-child td{border-bottom:none;}
+  .history-table tr:hover td{background:var(--surface-2);}
+  .history-table td.mono{font-family:'IBM Plex Mono',monospace;}
+  .history-table td.event{white-space:normal;min-width:160px;}
+  .history-table td.event .venue{color:var(--text-dim);font-size:11px;margin-top:2px;}
+  .result-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.06em;
+    padding:3px 9px;border-radius:20px;border:1.5px solid;white-space:nowrap;
+  }
+  .result-badge.won{color:var(--ok);border-color:var(--ok);background:var(--ok-bg);}
+  .result-badge.lost{color:var(--danger);border-color:var(--danger);background:var(--danger-bg);}
+  .result-badge.partial{color:var(--warn);border-color:var(--warn);background:var(--warn-bg);}
+  .result-badge.pending{color:var(--neutral);border-color:var(--neutral);background:var(--neutral-bg);}
+  .row-actions{display:flex;gap:6px;}
+  .row-actions button{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);border-radius:6px;
+    padding:4px 8px;font-size:11px;cursor:pointer;
+  }
+  .row-actions button:hover{color:var(--text);}
+  .row-actions button.ghost:hover{color:var(--danger);}
+
+  @media (max-width:520px){
+    .wrap{padding:20px 14px 60px;}
+    .brand h1{font-size:26px;}
+    header.top{align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading">読み込み中…</div>
+</div>
+
+<script>
+const STORAGE_KEY = 'renewal-tracker-data';
+const LEGACY_KEY = 'memberships-data';
+
+// Claude上ではwindow.storageを使い、それ以外の環境(Vercel等での単体公開時)では
+// ブラウザのlocalStorageに自動で切り替える。保存先が変わるだけで、アプリ側のコードは同じまま動く。
+const storage = (typeof window.storage !== 'undefined' && window.storage !== null) ? window.storage : {
+  async get(key){
+    const v = localStorage.getItem(key);
+    if(v === null){ const e = new Error('key not found'); throw e; }
+    return { key, value:v, shared:false };
+  },
+  async set(key, value){
+    localStorage.setItem(key, value);
+    return { key, value, shared:false };
+  },
+  async delete(key){
+    localStorage.removeItem(key);
+    return { key, deleted:true, shared:false };
+  },
+};
+
+const CATEGORIES = [
+  { key:'card', label:'カード', icon:'<path d="M2 6h16v9H2z"/><path d="M2 9h16" stroke-width="1.5"/>' },
+  { key:'subscription', label:'サブスク', icon:'<circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/>' },
+  { key:'membership', label:'会員権', icon:'<path d="M10 2l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 7.3l5-.7z"/>' },
+  { key:'license', label:'資格・免許', icon:'<rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 8h6M7 11h4"/>' },
+  { key:'other', label:'その他', icon:'<circle cx="10" cy="10" r="7"/>' },
+];
+const RELATIONS = ['本人','家族','友人','その他'];
+const RESULTS = [
+  {key:'pending', label:'結果待ち'},
+  {key:'won', label:'当選'},
+  {key:'partial', label:'一部当選'},
+  {key:'lost', label:'落選'},
+];
+
+function catInfo(key){ return CATEGORIES.find(c=>c.key===key) || CATEGORIES[4]; }
+function resultInfo(key){ return RESULTS.find(r=>r.key===key) || RESULTS[0]; }
+
+let state = {
+  loaded:false,
+  tab:'memberships',
+  items:[],
+  identities:[],
+  history:[],
+  search:'',
+  filterCat:'all',
+  sort:'urgency',
+  modal:null,
+  identityModal:null,
+  historyModal:null,
+  historyFilterIdentity:'all',
+  historyFilterResult:'all',
+  historySearch:'',
+  historySort:'date-desc',
+};
+
+function uid(prefix){ return (prefix||'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const today = new Date(todayStr()+'T00:00:00');
+  const target = new Date(dateStr+'T00:00:00');
+  return Math.round((target - today) / 86400000);
+}
+function fmtDate(dateStr){
+  if(!dateStr) return '—';
+  const [y,m,d] = dateStr.split('-');
+  return `${y}/${m}/${d}`;
+}
+function yen(n){
+  if(n === null || n === undefined || n === '') return '—';
+  return '¥' + Number(n).toLocaleString('ja-JP');
+}
+function statusOf(days){
+  if(days === null) return {key:'ok', label:'期限未設定', short:''};
+  if(days < 0) return {key:'danger', label:'期限切れ', short:`${Math.abs(days)}日超過`};
+  if(days <= 7) return {key:'danger', label:'まもなく期限', short:`残り${days}日`};
+  if(days <= 30) return {key:'warn', label:'要確認', short:`残り${days}日`};
+  if(days <= 90) return {key:'warn', label:'そろそろ確認', short:`残り${days}日`};
+  return {key:'ok', label:'有効', short:`残り${days}日`};
+}
+function addPeriod(dateStr, cycle){
+  const d = new Date(dateStr+'T00:00:00');
+  if(cycle === 'month'){ d.setMonth(d.getMonth()+1); } else { d.setFullYear(d.getFullYear()+1); }
+  return d.toISOString().slice(0,10);
+}
+function annualEquivalent(item){
+  const fee = Number(item.fee)||0;
+  return item.feeCycle === 'month' ? fee*12 : fee;
+}
+
+async function loadData(){
+  try{
+    const res = await storage.get(STORAGE_KEY, false);
+    const data = res && res.value ? JSON.parse(res.value) : null;
+    if(data){
+      state.items = data.items || [];
+      state.identities = data.identities || [];
+      state.history = data.history || [];
+    }else{
+      // try migrating from the older single-purpose key
+      try{
+        const legacy = await storage.get(LEGACY_KEY, false);
+        state.items = legacy && legacy.value ? JSON.parse(legacy.value) : [];
+      }catch(e){ state.items = []; }
+      state.identities = [];
+      state.history = [];
+    }
+  }catch(e){
+    state.items = []; state.identities = []; state.history = [];
+  }
+  state.loaded = true;
+  render();
+}
+
+async function saveData(){
+  try{
+    await storage.set(STORAGE_KEY, JSON.stringify({
+      items: state.items, identities: state.identities, history: state.history
+    }), false);
+  }catch(e){
+    showToast('保存に失敗しました');
+  }
+}
+
+let toastTimer=null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  if(!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+function setTab(tab){ state.tab = tab; render(); }
+
+let errorBanner = '';
+window.addEventListener('error', (e)=>{
+  errorBanner = 'エラー: ' + (e.message || '不明なエラー');
+  renderErrorBanner();
+});
+window.addEventListener('unhandledrejection', (e)=>{
+  errorBanner = 'エラー: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+  renderErrorBanner();
+});
+function renderErrorBanner(){
+  let el = document.getElementById('error-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'error-banner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c1594f;color:#fff;padding:10px 16px;font-family:monospace;font-size:12px;z-index:999;text-align:center;';
+    document.body.prepend(el);
+  }
+  el.textContent = errorBanner + '(この内容をClaudeに伝えてください)';
+}
+const usingClaudeStorage = (typeof window.storage !== 'undefined' && window.storage !== null);
+if(!usingClaudeStorage){
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface-2);color:var(--text-dim);padding:8px 16px;font-family:sans-serif;font-size:11px;z-index:998;text-align:center;border-top:1px solid var(--border);';
+    el.textContent = 'ℹ データはこの端末・このブラウザにのみ保存されます(他の端末とは共有されません)';
+    document.body.appendChild(el);
+  });
+}
+
+/* ---------- memberships (renewal tracking) ---------- */
+
+function ensureIdentity(name){
+  const trimmed = (name||'').trim();
+  if(!trimmed) return;
+  const exists = state.identities.some(i => i.name.trim().toLowerCase() === trimmed.toLowerCase());
+  if(!exists){
+    state.identities.push({ id: uid('idt'), name: trimmed, relation:'その他', note:'' });
+  }
+}
+
+function openAddModal(){
+  state.modal = { mode:'add', item:{
+    id: uid('m'), category:'card', serviceName:'', holderName:'', fee:'', feeCycle:'year',
+    renewalDate:'', lastUsedDate:'', autoRenew:false, notes:''
+  }};
+  render();
+}
+function openEditModal(id){
+  const item = state.items.find(i=>i.id===id);
+  if(!item) return;
+  state.modal = { mode:'edit', item:{...item} };
+  render();
+}
+function closeModal(){ state.modal = null; render(); }
+
+function saveModal(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const item = state.modal.item;
+  item.serviceName = fd.get('serviceName').trim();
+  item.holderName = fd.get('holderName').trim();
+  item.category = fd.get('category');
+  item.fee = fd.get('fee') ? Number(fd.get('fee')) : '';
+  item.feeCycle = fd.get('feeCycle');
+  item.renewalDate = fd.get('renewalDate');
+  item.lastUsedDate = fd.get('lastUsedDate');
+  item.autoRenew = fd.get('autoRenew') === 'on';
+  item.notes = fd.get('notes').trim();
+
+  if(!item.serviceName || !item.renewalDate){ showToast('サービス名と更新日は必須です'); return; }
+
+  ensureIdentity(item.holderName);
+
+  if(state.modal.mode === 'add'){ state.items.push(item); }
+  else{ const idx = state.items.findIndex(i=>i.id===item.id); if(idx>-1) state.items[idx] = item; }
+  state.modal = null;
+  saveData(); render();
+  showToast('保存しました');
+}
+
+function deleteItem(id){
+  const item = state.items.find(i=>i.id===id);
+  if(!item) return;
+  if(!confirm(`「${item.serviceName}」を削除しますか？`)) return;
+  state.items = state.items.filter(i=>i.id!==id);
+  saveData(); render();
+  showToast('削除しました');
+}
+function markUsedToday(id){
+  const item = state.items.find(i=>i.id===id);
+  if(!item) return;
+  item.lastUsedDate = todayStr();
+  saveData(); render();
+  showToast('利用日を今日に更新しました');
+}
+function markRenewed(id){
+  const item = state.items.find(i=>i.id===id);
+  if(!item) return;
+  item.renewalDate = addPeriod(item.renewalDate, item.feeCycle);
+  saveData(); render();
+  showToast('更新日を延長しました');
+}
+
+function filteredSortedItems(){
+  let list = state.items.slice();
+  if(state.filterCat !== 'all') list = list.filter(i=>i.category===state.filterCat);
+  if(state.search.trim()){
+    const q = state.search.trim().toLowerCase();
+    list = list.filter(i =>
+      (i.serviceName||'').toLowerCase().includes(q) ||
+      (i.holderName||'').toLowerCase().includes(q) ||
+      (i.notes||'').toLowerCase().includes(q)
+    );
+  }
+  if(state.sort === 'urgency') list.sort((a,b)=> (daysUntil(a.renewalDate)??9999) - (daysUntil(b.renewalDate)??9999));
+  else if(state.sort === 'name') list.sort((a,b)=> a.serviceName.localeCompare(b.serviceName,'ja'));
+  else if(state.sort === 'fee') list.sort((a,b)=> annualEquivalent(b) - annualEquivalent(a));
+  return list;
+}
+
+/* ---------- identities ---------- */
+
+function openAddIdentity(){
+  state.identityModal = { mode:'add', item:{ id: uid('idt'), name:'', relation:'本人', note:'' } };
+  render();
+}
+function openEditIdentity(id){
+  const idt = state.identities.find(i=>i.id===id);
+  if(!idt) return;
+  state.identityModal = { mode:'edit', item:{...idt} };
+  render();
+}
+function closeIdentityModal(){ state.identityModal = null; render(); }
+
+function saveIdentityModal(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const item = state.identityModal.item;
+  item.name = fd.get('name').trim();
+  item.relation = fd.get('relation');
+  item.note = fd.get('note').trim();
+  if(!item.name){ showToast('名前を入力してください'); return; }
+
+  if(state.identityModal.mode === 'add') state.identities.push(item);
+  else{ const idx = state.identities.findIndex(i=>i.id===item.id); if(idx>-1) state.identities[idx] = item; }
+  state.identityModal = null;
+  saveData(); render();
+  showToast('保存しました');
+}
+
+function deleteIdentity(id){
+  const idt = state.identities.find(i=>i.id===id);
+  if(!idt) return;
+  const usedCount = state.history.filter(h=>h.identityId===id).length;
+  const msg = usedCount>0
+    ? `「${idt.name}」を削除しますか？(履歴 ${usedCount}件には名前が残ります)`
+    : `「${idt.name}」を削除しますか？`;
+  if(!confirm(msg)) return;
+  state.identities = state.identities.filter(i=>i.id!==id);
+  saveData(); render();
+  showToast('削除しました');
+}
+
+/* ---------- history ---------- */
+
+function openAddHistory(){
+  if(state.identities.length === 0){
+    showToast('先に名義を追加してください');
+    return;
+  }
+  state.historyModal = { mode:'add', item:{
+    id: uid('h'), identityId: state.identities[0].id, eventName:'', venue:'',
+    eventDate:'', applyDate: todayStr(), ticketCount:1, price:'', result:'pending', notes:''
+  }};
+  render();
+}
+function openEditHistory(id){
+  const item = state.history.find(h=>h.id===id);
+  if(!item) return;
+  state.historyModal = { mode:'edit', item:{...item} };
+  render();
+}
+function closeHistoryModal(){ state.historyModal = null; render(); }
+
+function saveHistoryModal(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const item = state.historyModal.item;
+  item.identityId = fd.get('identityId');
+  item.eventName = fd.get('eventName').trim();
+  item.venue = fd.get('venue').trim();
+  item.eventDate = fd.get('eventDate');
+  item.applyDate = fd.get('applyDate');
+  item.ticketCount = fd.get('ticketCount') ? Number(fd.get('ticketCount')) : 1;
+  item.price = fd.get('price') ? Number(fd.get('price')) : '';
+  item.result = fd.get('result');
+  item.notes = fd.get('notes').trim();
+
+  if(!item.eventName || !item.identityId){ showToast('名義と公演名は必須です'); return; }
+
+  if(state.historyModal.mode === 'add') state.history.push(item);
+  else{ const idx = state.history.findIndex(h=>h.id===item.id); if(idx>-1) state.history[idx] = item; }
+  state.historyModal = null;
+  saveData(); render();
+  showToast('保存しました');
+}
+
+function deleteHistory(id){
+  if(!confirm('この履歴を削除しますか？')) return;
+  state.history = state.history.filter(h=>h.id!==id);
+  saveData(); render();
+  showToast('削除しました');
+}
+
+function setHistoryResult(id, result){
+  const item = state.history.find(h=>h.id===id);
+  if(!item) return;
+  item.result = result;
+  saveData(); render();
+}
+
+function identityName(id){
+  const idt = state.identities.find(i=>i.id===id);
+  return idt ? idt.name : '(削除済み)';
+}
+
+function filteredSortedHistory(){
+  let list = state.history.slice();
+  if(state.historyFilterIdentity !== 'all') list = list.filter(h=>h.identityId===state.historyFilterIdentity);
+  if(state.historyFilterResult !== 'all') list = list.filter(h=>h.result===state.historyFilterResult);
+  if(state.historySearch.trim()){
+    const q = state.historySearch.trim().toLowerCase();
+    list = list.filter(h =>
+      (h.eventName||'').toLowerCase().includes(q) ||
+      (h.venue||'').toLowerCase().includes(q) ||
+      (h.notes||'').toLowerCase().includes(q)
+    );
+  }
+  if(state.historySort === 'date-desc') list.sort((a,b)=> (b.eventDate||'').localeCompare(a.eventDate||''));
+  else if(state.historySort === 'date-asc') list.sort((a,b)=> (a.eventDate||'').localeCompare(b.eventDate||''));
+  else if(state.historySort === 'event') list.sort((a,b)=> a.eventName.localeCompare(b.eventName,'ja'));
+  return list;
+}
+
+function computeIdentityStats(){
+  const map = {};
+  state.identities.forEach(idt => { map[idt.id] = { id:idt.id, name:idt.name, relation:idt.relation, total:0, won:0, lost:0, partial:0, pending:0, spend:0 }; });
+  state.history.forEach(h => {
+    if(!map[h.identityId]) map[h.identityId] = { id:h.identityId, name:identityName(h.identityId), relation:'', total:0, won:0, lost:0, partial:0, pending:0, spend:0 };
+    const row = map[h.identityId];
+    row.total += 1;
+    row[h.result] = (row[h.result]||0) + 1;
+    if(h.price !== '' && h.price !== null && h.price !== undefined){
+      row.spend += Number(h.price) * (Number(h.ticketCount)||1);
+    }
+  });
+  return Object.values(map);
+}
+
+/* ---------- render ---------- */
+
+function render(){
+  const app = document.getElementById('app');
+  if(!state.loaded){ app.innerHTML = '<div class="loading">読み込み中…</div>'; return; }
+
+  app.innerHTML = `
+    <header class="top">
+      <div class="brand">
+        <span class="eyebrow">Renewal Ledger</span>
+        <h1>更新期限帳</h1>
+        <p>${state.tab==='memberships' ? 'カードや会員権の更新日と利用状況をまとめて管理' : '名義ごとの申込履歴と当落を記録'}</p>
+      </div>
+      ${state.tab==='memberships'
+        ? `<button class="add-btn" id="btn-add">＋ 新しく登録</button>`
+        : `<button class="add-btn" id="btn-add-history">＋ 申込を記録</button>`}
+    </header>
+
+    <div class="tabbar">
+      <button class="${state.tab==='memberships'?'active':''}" id="tab-memberships">更新期限</button>
+      <button class="${state.tab==='history'?'active':''}" id="tab-history">抽選ログ</button>
+    </div>
+
+    ${state.tab==='memberships' ? renderMembershipsPage() : renderHistoryPage()}
+
+    ${state.modal ? renderModal() : ''}
+    ${state.identityModal ? renderIdentityModal() : ''}
+    ${state.historyModal ? renderHistoryModal() : ''}
+    <div class="toast" id="toast"></div>
+  `;
+  attachEvents();
+}
+
+function renderMembershipsPage(){
+  const items = state.items;
+  const expiredCount = items.filter(i=>daysUntil(i.renewalDate) < 0).length;
+  const soon7 = items.filter(i=>{const d=daysUntil(i.renewalDate); return d>=0 && d<=7;}).length;
+  const soon30 = items.filter(i=>{const d=daysUntil(i.renewalDate); return d>7 && d<=30;}).length;
+  const totalFee = items.reduce((sum,i)=> sum + annualEquivalent(i), 0);
+  const list = filteredSortedItems();
+
+  return `
+    <div class="summary">
+      <div class="cell danger"><div class="num">${expiredCount}</div><div class="label">期限切れ</div></div>
+      <div class="cell danger"><div class="num">${soon7}</div><div class="label">7日以内に更新</div></div>
+      <div class="cell warn"><div class="num">${soon30}</div><div class="label">30日以内に更新</div></div>
+      <div class="cell ok"><div class="num">${items.length}</div><div class="label">登録件数</div></div>
+      <div class="cell"><div class="num">${yen(totalFee)}</div><div class="label">年会費 合計(年換算)</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="サービス名・名義・メモで検索" value="${escapeAttr(state.search)}">
+      <select id="filter-cat">
+        <option value="all" ${state.filterCat==='all'?'selected':''}>すべてのカテゴリ</option>
+        ${CATEGORIES.map(c=>`<option value="${c.key}" ${state.filterCat===c.key?'selected':''}>${c.label}</option>`).join('')}
+      </select>
+      <select id="sort">
+        <option value="urgency" ${state.sort==='urgency'?'selected':''}>期限が近い順</option>
+        <option value="name" ${state.sort==='name'?'selected':''}>名前順</option>
+        <option value="fee" ${state.sort==='fee'?'selected':''}>年会費が高い順</option>
+      </select>
+    </div>
+
+    ${list.length === 0 ? renderMembershipEmpty(items.length===0) : `<div class="grid">${list.map(renderCard).join('')}</div>`}
+  `;
+}
+
+function renderMembershipEmpty(noneAtAll){
+  if(noneAtAll){
+    return `<div class="empty">
+      <h3>まだ何も登録されていません</h3>
+      <p>クレジットカードの年会費や、ジムの会員権、資格の更新日などを登録してみましょう。</p>
+      <button class="add-btn" id="btn-add-empty">＋ 最初の1件を登録</button>
+    </div>`;
+  }
+  return `<div class="empty"><h3>条件に一致するものがありません</h3><p>検索やフィルタの条件を変えてみてください。</p></div>`;
+}
+
+function renderCard(item){
+  const days = daysUntil(item.renewalDate);
+  const st = statusOf(days);
+  const cat = catInfo(item.category);
+  const barPct = days===null ? 0 : Math.max(4, Math.min(100, 100 - (days/90)*100));
+  const barColor = st.key==='danger' ? 'var(--danger)' : st.key==='warn' ? 'var(--warn)' : 'var(--ok)';
+
+  return `
+    <div class="card st-${st.key}">
+      <div class="card-top">
+        <span class="cat-badge"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${cat.icon}</svg>${cat.label}</span>
+        <span class="stamp ${st.key}">${st.label}</span>
+      </div>
+      <h3>${escapeHtml(item.serviceName)}</h3>
+      <div class="holder">${item.holderName ? escapeHtml(item.holderName) : '名義未設定'}</div>
+      <div class="expiry-row">
+        <span class="date">${fmtDate(item.renewalDate)}</span>
+        <span class="days">${st.short||''}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${barPct}%;background:${barColor}"></div></div>
+      <div class="meta-row">
+        <span>最終利用: ${item.lastUsedDate ? fmtDate(item.lastUsedDate) : '記録なし'}</span>
+        <span class="fee">${yen(item.fee)}${item.fee!=='' && item.fee!==null && item.fee!==undefined ? (item.feeCycle==='month'?'/月':'/年') : ''}</span>
+      </div>
+      <div class="card-actions">
+        <button onclick="markUsedToday('${item.id}')">今日使った</button>
+        <button onclick="markRenewed('${item.id}')" class="primary">更新完了</button>
+        <button onclick="openEditModal('${item.id}')">編集</button>
+        <button onclick="deleteItem('${item.id}')" class="ghost">削除</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderHistoryPage(){
+  const stats = computeIdentityStats();
+  const decided = state.history.filter(h=>h.result!=='pending');
+  const won = state.history.filter(h=>h.result==='won'||h.result==='partial').length;
+  const winRate = decided.length ? Math.round(won/decided.length*100) : null;
+  const totalSpend = state.history.reduce((s,h)=> s + (h.price!=='' && h.price!=null ? Number(h.price)*(Number(h.ticketCount)||1) : 0), 0);
+  const list = filteredSortedHistory();
+
+  return `
+    <div class="identity-panel">
+      <span class="panel-label">名義:</span>
+      ${state.identities.map(idt => `
+        <span class="chip">${escapeHtml(idt.name)} <span class="rel">${idt.relation}</span>
+          <button onclick="openEditIdentity('${idt.id}')" title="編集">✎</button>
+          <button onclick="deleteIdentity('${idt.id}')" title="削除">✕</button>
+        </span>
+      `).join('')}
+      <button class="chip-add" id="btn-add-identity">＋ 名義を追加</button>
+    </div>
+
+    <div class="summary">
+      <div class="cell"><div class="num">${state.history.length}</div><div class="label">総申込数</div></div>
+      <div class="cell ok"><div class="num">${won}</div><div class="label">当選(一部含む)</div></div>
+      <div class="cell"><div class="num">${winRate===null?'—':winRate+'%'}</div><div class="label">当選率(結果確定分)</div></div>
+      <div class="cell"><div class="num">${yen(totalSpend)}</div><div class="label">チケット代 合計</div></div>
+    </div>
+
+    ${stats.length>0 ? `
+    <table class="stats-table">
+      <thead><tr><th>名義</th><th>申込数</th><th>当選</th><th>落選</th><th>結果待ち</th><th>当選率</th><th>合計金額</th></tr></thead>
+      <tbody>
+        ${stats.map(s => {
+          const dec = s.won + s.partial + s.lost;
+          const rate = dec ? Math.round((s.won+s.partial)/dec*100) : null;
+          return `<tr>
+            <td class="name-col">${escapeHtml(s.name)}</td>
+            <td>${s.total}</td>
+            <td>${s.won + s.partial}</td>
+            <td>${s.lost}</td>
+            <td>${s.pending}</td>
+            <td>${rate===null?'—':rate+'%'}</td>
+            <td>${yen(s.spend)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>` : ''}
+
+    <div class="toolbar">
+      <input type="text" id="history-search" placeholder="公演名・会場・メモで検索" value="${escapeAttr(state.historySearch)}">
+      <select id="history-filter-identity">
+        <option value="all" ${state.historyFilterIdentity==='all'?'selected':''}>すべての名義</option>
+        ${state.identities.map(idt=>`<option value="${idt.id}" ${state.historyFilterIdentity===idt.id?'selected':''}>${escapeHtml(idt.name)}</option>`).join('')}
+      </select>
+      <select id="history-filter-result">
+        <option value="all" ${state.historyFilterResult==='all'?'selected':''}>すべての結果</option>
+        ${RESULTS.map(r=>`<option value="${r.key}" ${state.historyFilterResult===r.key?'selected':''}>${r.label}</option>`).join('')}
+      </select>
+      <select id="history-sort">
+        <option value="date-desc" ${state.historySort==='date-desc'?'selected':''}>公演日が新しい順</option>
+        <option value="date-asc" ${state.historySort==='date-asc'?'selected':''}>公演日が古い順</option>
+        <option value="event" ${state.historySort==='event'?'selected':''}>公演名順</option>
+      </select>
+    </div>
+
+    ${list.length===0 ? renderHistoryEmpty(state.history.length===0) : `
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>公演日</th><th>公演名</th><th>名義</th><th>申込日</th><th>枚数</th><th>金額</th><th>結果</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(renderHistoryRow).join('')}
+        </tbody>
+      </table>
+    </div>`}
+  `;
+}
+
+function renderHistoryEmpty(noneAtAll){
+  if(state.identities.length===0){
+    return `<div class="empty"><h3>まず名義を登録してください</h3><p>上の「＋ 名義を追加」から、申込に使う名前を登録すると記録できるようになります。</p></div>`;
+  }
+  if(noneAtAll){
+    return `<div class="empty">
+      <h3>まだ申込履歴がありません</h3>
+      <p>公演名・枚数・当落結果などを記録しておくと、名義ごとの傾向があとで見返せます。</p>
+      <button class="add-btn" id="btn-add-history-empty">＋ 最初の1件を記録</button>
+    </div>`;
+  }
+  return `<div class="empty"><h3>条件に一致するものがありません</h3><p>検索やフィルタの条件を変えてみてください。</p></div>`;
+}
+
+function renderHistoryRow(h){
+  const r = resultInfo(h.result);
+  const amount = (h.price!=='' && h.price!=null) ? Number(h.price)*(Number(h.ticketCount)||1) : null;
+  return `
+    <tr>
+      <td class="mono">${fmtDate(h.eventDate)}</td>
+      <td class="event">${escapeHtml(h.eventName)}${h.venue ? `<div class="venue">${escapeHtml(h.venue)}</div>` : ''}</td>
+      <td>${escapeHtml(identityName(h.identityId))}</td>
+      <td class="mono">${fmtDate(h.applyDate)}</td>
+      <td class="mono">${h.ticketCount||1}枚</td>
+      <td class="mono">${amount===null ? '—' : yen(amount)}</td>
+      <td>
+        <select onchange="setHistoryResult('${h.id}', this.value)" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:11px;padding:3px 6px;">
+          ${RESULTS.map(rr=>`<option value="${rr.key}" ${h.result===rr.key?'selected':''}>${rr.label}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button onclick="openEditHistory('${h.id}')">編集</button>
+          <button onclick="deleteHistory('${h.id}')" class="ghost">削除</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function renderModal(){
+  const item = state.modal.item;
+  const isEdit = state.modal.mode === 'edit';
+  return `
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>${isEdit ? '編集' : '新しく登録'}</h2>
+      <form id="modal-form">
+        <div class="field"><label>サービス名 *</label>
+          <input type="text" name="serviceName" value="${escapeAttr(item.serviceName)}" placeholder="例: 楽天プレミアムカード" required></div>
+        <div class="field-row">
+          <div class="field"><label>名義</label>
+            <input type="text" name="holderName" value="${escapeAttr(item.holderName)}" placeholder="例: 本人 / 妻 / 会社用" list="identity-names"></div>
+          <div class="field"><label>カテゴリ</label>
+            <select name="category">${CATEGORIES.map(c=>`<option value="${c.key}" ${item.category===c.key?'selected':''}>${c.label}</option>`).join('')}</select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>会費</label><input type="number" name="fee" value="${item.fee}" placeholder="例: 11000"></div>
+          <div class="field"><label>周期</label>
+            <select name="feeCycle"><option value="year" ${item.feeCycle==='year'?'selected':''}>年払い</option><option value="month" ${item.feeCycle==='month'?'selected':''}>月払い</option></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>次回更新日 *</label><input type="date" name="renewalDate" value="${item.renewalDate}" required></div>
+          <div class="field"><label>最終利用日</label><input type="date" name="lastUsedDate" value="${item.lastUsedDate}"></div>
+        </div>
+        <div class="field"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="autoRenew" style="width:auto;" ${item.autoRenew?'checked':''}> 自動更新される</label></div>
+        <div class="field"><label>メモ</label><textarea name="notes" placeholder="解約条件や連絡先など">${escapeHtml(item.notes)}</textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="cancel" id="btn-cancel">キャンセル</button>
+          <button type="submit" class="save">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <datalist id="identity-names">${state.identities.map(i=>`<option value="${escapeAttr(i.name)}">`).join('')}</datalist>
+  `;
+}
+
+function renderIdentityModal(){
+  const item = state.identityModal.item;
+  const isEdit = state.identityModal.mode === 'edit';
+  return `
+  <div class="overlay" id="overlay-identity">
+    <div class="modal">
+      <h2>${isEdit ? '名義を編集' : '名義を追加'}</h2>
+      <form id="identity-form">
+        <div class="field"><label>名前 *</label><input type="text" name="name" value="${escapeAttr(item.name)}" placeholder="例: 太郎 / 花子" required></div>
+        <div class="field"><label>関係</label>
+          <select name="relation">${RELATIONS.map(r=>`<option value="${r}" ${item.relation===r?'selected':''}>${r}</option>`).join('')}</select></div>
+        <div class="field"><label>メモ</label><textarea name="note" placeholder="任意">${escapeHtml(item.note)}</textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="cancel" id="btn-cancel-identity">キャンセル</button>
+          <button type="submit" class="save">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+
+function renderHistoryModal(){
+  const item = state.historyModal.item;
+  const isEdit = state.historyModal.mode === 'edit';
+  return `
+  <div class="overlay" id="overlay-history">
+    <div class="modal">
+      <h2>${isEdit ? '申込履歴を編集' : '申込を記録'}</h2>
+      <form id="history-form">
+        <div class="field"><label>名義 *</label>
+          <select name="identityId">${state.identities.map(i=>`<option value="${i.id}" ${item.identityId===i.id?'selected':''}>${escapeHtml(i.name)}</option>`).join('')}</select></div>
+        <div class="field"><label>公演名 *</label><input type="text" name="eventName" value="${escapeAttr(item.eventName)}" placeholder="例: 〇〇ライブ 2026" required></div>
+        <div class="field"><label>会場</label><input type="text" name="venue" value="${escapeAttr(item.venue)}" placeholder="例: 東京ドーム"></div>
+        <div class="field-row">
+          <div class="field"><label>公演日</label><input type="date" name="eventDate" value="${item.eventDate}"></div>
+          <div class="field"><label>申込日</label><input type="date" name="applyDate" value="${item.applyDate}"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>枚数</label><input type="number" name="ticketCount" value="${item.ticketCount}" min="1"></div>
+          <div class="field"><label>チケット代(1枚あたり)</label><input type="number" name="price" value="${item.price}" placeholder="例: 9800"></div>
+        </div>
+        <div class="field"><label>結果</label>
+          <select name="result">${RESULTS.map(r=>`<option value="${r.key}" ${item.result===r.key?'selected':''}>${r.label}</option>`).join('')}</select></div>
+        <div class="field"><label>メモ</label><textarea name="notes" placeholder="任意">${escapeHtml(item.notes)}</textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="cancel" id="btn-cancel-history">キャンセル</button>
+          <button type="submit" class="save">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+
+function attachEvents(){
+  const tabM = document.getElementById('tab-memberships'); if(tabM) tabM.onclick = ()=>setTab('memberships');
+  const tabH = document.getElementById('tab-history'); if(tabH) tabH.onclick = ()=>setTab('history');
+
+  const btnAdd = document.getElementById('btn-add'); if(btnAdd) btnAdd.onclick = openAddModal;
+  const btnAddEmpty = document.getElementById('btn-add-empty'); if(btnAddEmpty) btnAddEmpty.onclick = openAddModal;
+  const search = document.getElementById('search');
+  if(search) search.oninput = (e)=>{ const pos = e.target.selectionStart; state.search = e.target.value; render(); const el=document.getElementById('search'); if(el){el.focus(); el.setSelectionRange(pos,pos);} };
+  const filterCat = document.getElementById('filter-cat'); if(filterCat) filterCat.onchange = (e)=>{ state.filterCat = e.target.value; render(); };
+  const sort = document.getElementById('sort'); if(sort) sort.onchange = (e)=>{ state.sort = e.target.value; render(); };
+  const overlay = document.getElementById('overlay'); if(overlay) overlay.onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
+  const btnCancel = document.getElementById('btn-cancel'); if(btnCancel) btnCancel.onclick = closeModal;
+  const form = document.getElementById('modal-form'); if(form) form.onsubmit = saveModal;
+
+  const btnAddIdentity = document.getElementById('btn-add-identity'); if(btnAddIdentity) btnAddIdentity.onclick = openAddIdentity;
+  const overlayIdentity = document.getElementById('overlay-identity'); if(overlayIdentity) overlayIdentity.onclick = (e)=>{ if(e.target.id==='overlay-identity') closeIdentityModal(); };
+  const btnCancelIdentity = document.getElementById('btn-cancel-identity'); if(btnCancelIdentity) btnCancelIdentity.onclick = closeIdentityModal;
+  const identityForm = document.getElementById('identity-form'); if(identityForm) identityForm.onsubmit = saveIdentityModal;
+
+  const btnAddHistory = document.getElementById('btn-add-history'); if(btnAddHistory) btnAddHistory.onclick = openAddHistory;
+  const btnAddHistoryEmpty = document.getElementById('btn-add-history-empty'); if(btnAddHistoryEmpty) btnAddHistoryEmpty.onclick = openAddHistory;
+  const historySearch = document.getElementById('history-search');
+  if(historySearch) historySearch.oninput = (e)=>{ const pos=e.target.selectionStart; state.historySearch = e.target.value; render(); const el=document.getElementById('history-search'); if(el){el.focus(); el.setSelectionRange(pos,pos);} };
+  const hFilterIdentity = document.getElementById('history-filter-identity'); if(hFilterIdentity) hFilterIdentity.onchange = (e)=>{ state.historyFilterIdentity = e.target.value; render(); };
+  const hFilterResult = document.getElementById('history-filter-result'); if(hFilterResult) hFilterResult.onchange = (e)=>{ state.historyFilterResult = e.target.value; render(); };
+  const hSort = document.getElementById('history-sort'); if(hSort) hSort.onchange = (e)=>{ state.historySort = e.target.value; render(); };
+  const overlayHistory = document.getElementById('overlay-history'); if(overlayHistory) overlayHistory.onclick = (e)=>{ if(e.target.id==='overlay-history') closeHistoryModal(); };
+  const btnCancelHistory = document.getElementById('btn-cancel-history'); if(btnCancelHistory) btnCancelHistory.onclick = closeHistoryModal;
+  const historyForm = document.getElementById('history-form'); if(historyForm) historyForm.onsubmit = saveHistoryModal;
+}
+
+function escapeHtml(str){
+  if(str===undefined || str===null) return '';
+  return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+window.markUsedToday = markUsedToday;
+window.markRenewed = markRenewed;
+window.openEditModal = openEditModal;
+window.deleteItem = deleteItem;
+window.openEditIdentity = openEditIdentity;
+window.deleteIdentity = deleteIdentity;
+window.openEditHistory = openEditHistory;
+window.deleteHistory = deleteHistory;
+window.setHistoryResult = setHistoryResult;
+
+loadData();
+</script>
+</body>
+</html>
